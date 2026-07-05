@@ -1,149 +1,164 @@
+// Full All-Quests Spoofer (April 2026) - Works for Video + Games + Stream + Activity
 delete window.$;
+
 let wpRequire = webpackChunkdiscord_app.push([[Symbol()], {}, r => r]);
 webpackChunkdiscord_app.pop();
-let ApplicationStreamingStore = Object.values(wpRequire.c).find(x => x?.exports?.Z?.**proto**?.getStreamerActiveStreamMetadata)?.exports?.Z;
+
+let ApplicationStreamingStore = Object.values(wpRequire.c).find(x => x?.exports?.Z?.__proto__?.getStreamerActiveStreamMetadata)?.exports?.Z;
 let RunningGameStore, QuestsStore, ChannelStore, GuildChannelStore, FluxDispatcher, api;
+
 if (!ApplicationStreamingStore) {
-  ApplicationStreamingStore = Object.values(wpRequire.c).find(x => x?.exports?.A?.**proto**?.getStreamerActiveStreamMetadata)?.exports?.A;
-  RunningGameStore = Object.values(wpRequire.c).find(x => x?.exports?.Ay?.getRunningGames)?.exports?.Ay;
-  QuestsStore = Object.values(wpRequire.c).find(x => x?.exports?.A?.**proto**?.getQuest)?.exports?.A;
-  ChannelStore = Object.values(wpRequire.c).find(x => x?.exports?.A?.**proto**?.getAllThreadsForParent)?.exports?.A;
-  GuildChannelStore = Object.values(wpRequire.c).find(x => x?.exports?.Ay?.getSFWDefaultChannel)?.exports?.Ay;
-  FluxDispatcher = Object.values(wpRequire.c).find(x => x?.exports?.h?.**proto**?.flushWaitQueue)?.exports?.h;
-  api = Object.values(wpRequire.c).find(x => x?.exports?.Bo?.get)?.exports?.Bo;
+  ApplicationStreamingStore = Object.values(wpRequire.c).find(x => x?.exports?.A?.__proto__?.getStreamerActiveStreamMetadata)?.exports?.A;
+  RunningGameStore = Object.values(wpRequire.c).find(x => x?.exports?.Ay?.getRunningGames)?.exports?.Ay;
+  QuestsStore = Object.values(wpRequire.c).find(x => x?.exports?.A?.__proto__?.getQuest)?.exports?.A;
+  ChannelStore = Object.values(wpRequire.c).find(x => x?.exports?.A?.__proto__?.getAllThreadsForParent)?.exports?.A;
+  GuildChannelStore = Object.values(wpRequire.c).find(x => x?.exports?.Ay?.getSFWDefaultChannel)?.exports?.Ay;
+  FluxDispatcher = Object.values(wpRequire.c).find(x => x?.exports?.h?.__proto__?.flushWaitQueue)?.exports?.h;
+  api = Object.values(wpRequire.c).find(x => x?.exports?.Bo?.get)?.exports?.Bo;
 } else {
-  RunningGameStore = Object.values(wpRequire.c).find(x => x?.exports?.ZP?.getRunningGames)?.exports?.ZP;
-  QuestsStore = Object.values(wpRequire.c).find(x => x?.exports?.Z?.**proto**?.getQuest)?.exports?.Z;
-  ChannelStore = Object.values(wpRequire.c).find(x => x?.exports?.Z?.**proto**?.getAllThreadsForParent)?.exports?.Z;
-  GuildChannelStore = Object.values(wpRequire.c).find(x => x?.exports?.ZP?.getSFWDefaultChannel)?.exports?.ZP;
-  FluxDispatcher = Object.values(wpRequire.c).find(x => x?.exports?.Z?.**proto**?.flushWaitQueue)?.exports?.Z;
-  api = Object.values(wpRequire.c).find(x => x?.exports?.tn?.get)?.exports?.tn;
+  RunningGameStore = Object.values(wpRequire.c).find(x => x?.exports?.ZP?.getRunningGames)?.exports?.ZP;
+  QuestsStore = Object.values(wpRequire.c).find(x => x?.exports?.Z?.__proto__?.getQuest)?.exports?.Z;
+  ChannelStore = Object.values(wpRequire.c).find(x => x?.exports?.Z?.__proto__?.getAllThreadsForParent)?.exports?.Z;
+  GuildChannelStore = Object.values(wpRequire.c).find(x => x?.exports?.ZP?.getSFWDefaultChannel)?.exports?.ZP;
+  FluxDispatcher = Object.values(wpRequire.c).find(x => x?.exports?.Z?.__proto__?.flushWaitQueue)?.exports?.Z;
+  api = Object.values(wpRequire.c).find(x => x?.exports?.tn?.get)?.exports?.tn;
 }
+
 const supportedTasks = ["WATCH_VIDEO", "PLAY_ON_DESKTOP", "STREAM_ON_DESKTOP", "PLAY_ACTIVITY", "WATCH_VIDEO_ON_MOBILE"];
+
 let quests = [...(QuestsStore?.quests?.values?.() ?? [])].filter(x =>
-  x?.userStatus?.enrolledAt &&
-  !x?.userStatus?.completedAt &&
-  new Date(x.config.expiresAt).getTime() > Date.now() &&
-  supportedTasks.some(t => (x.config.taskConfig ?? x.config.taskConfigV2 ?? {}).tasks?.[t])
+  x?.userStatus?.enrolledAt &&
+  !x?.userStatus?.completedAt &&
+  new Date(x.config.expiresAt).getTime() > Date.now() &&
+  supportedTasks.some(t => (x.config.taskConfig ?? x.config.taskConfigV2 ?? {}).tasks?.[t])
 );
+
 let isApp = typeof DiscordNative !== "undefined";
+
 if (quests.length === 0) {
-  console.log("No active quests found. Make sure you enrolled them and they show as In Progress.");
+  console.log("No active quests found. Make sure you enrolled them and they show as In Progress.");
 } else {
-  console.log(Found ${quests.length} quest(s). Processing all types (video + games)...);
-  let processNext = function() {
-    const quest = quests.shift();
-    if (!quest) {
-      console.log("All quests processed!");
-      return;
-    }
-    const pid = Math.floor(Math.random() * 30000) + 1000;
-    const appId = quest.config.application?.id;
-    const appName = quest.config.application?.name ?? "Unknown";
-    const questName = quest.config.messages?.questName ?? "Unknown Quest";
-    const taskConfig = quest.config.taskConfig ?? quest.config.taskConfigV2;
-    const taskName = supportedTasks.find(t => taskConfig.tasks?.[t] != null);
-    const secondsNeeded = taskConfig.tasks[taskName].target;
-    let secondsDone = quest.userStatus?.progress?.[taskName]?.value ?? 0;
-    console.log(Starting: ${questName} (${taskName}) - ${secondsDone}/${secondsNeeded}s);
-    if (taskName === "WATCH_VIDEO" || taskName === "WATCH_VIDEO_ON_MOBILE") {
-      const maxFuture = 10, speed = 7, interval = 1;
-      const enrolledAt = new Date(quest.userStatus.enrolledAt).getTime();
-      let completed = false;
-      (async () => {
-        while (true) {
-          const maxAllowed = Math.floor((Date.now() - enrolledAt) / 1000) + maxFuture;
-          const diff = maxAllowed - secondsDone;
-          const timestamp = secondsDone + speed;
-          if (diff >= speed) {
-            try {
-              const res = await api.post({url: /quests/${quest.id}/video-progress, body: {timestamp: Math.min(secondsNeeded, timestamp + Math.random())}});
-              completed = res.body.completed_at != null;
-              secondsDone = Math.min(secondsNeeded, timestamp);
-              console.log(Video progress: ${secondsDone}/${secondsNeeded});
-            } catch (e) { console.error("Video error:", e.message); }
-          }
-          if (timestamp >= secondsNeeded) break;
-          await new Promise(r => setTimeout(r, interval * 1000));
-        }
-        if (!completed) await api.post({url: /quests/${quest.id}/video-progress, body: {timestamp: secondsNeeded}}).catch(console.error);
-        console.log(Completed: ${questName});
-        processNext();
-      })();
-    } else if (taskName === "PLAY_ON_DESKTOP") {
-      if (!isApp) {
-        console.log(Use desktop app for ${questName} (browser not supported). Skipping.);
-        processNext();
-        return;
-      }
-      api.get({url: /applications/public?application_ids=${appId}}).then(res => {
-        const appData = res.body[0];
-        if (!appData) { console.log("App data failed"); processNext(); return; }
-        const exeName = appData.executables?.find(x => x.os === "win32")?.name?.replace(">","") ?? "unknown.exe";
-        const fakeGame = {
-          cmdLine: C:\\Program Files\\${appData.name}\\${exeName},
-          exeName, exePath: c:/program files/${appData.name.toLowerCase()}/${exeName},
-          hidden: false, isLauncher: false,
-          id: appId, name: appData.name,
-          pid, pidPath: [pid], processName: appData.name, start: Date.now()
-        };
-        const realGames = RunningGameStore.getRunningGames();
-        const fakeGames = [fakeGame];
-        const origGet = RunningGameStore.getRunningGames;
-        const origPID = RunningGameStore.getGameForPID;
-        RunningGameStore.getRunningGames = () => fakeGames;
-        RunningGameStore.getGameForPID = p => fakeGames.find(g => g.pid === p);
-        FluxDispatcher.dispatch({type: "RUNNING_GAMES_CHANGE", removed: realGames, added: [fakeGame], games: fakeGames});
-        const listener = data => {
-          const prog = quest.config.configVersion === 1 ? data.userStatus.streamProgressSeconds : Math.floor(data.userStatus.progress?.PLAY_ON_DESKTOP?.value ?? 0);
-          console.log(Game progress: ${prog}/${secondsNeeded});
-          if (prog >= secondsNeeded) {
-            console.log(Completed: ${questName});
-            RunningGameStore.getRunningGames = origGet;
-            RunningGameStore.getGameForPID = origPID;
-            FluxDispatcher.dispatch({type: "RUNNING_GAMES_CHANGE", removed: [fakeGame], added: [], games: []});
-            FluxDispatcher.unsubscribe("QUESTS_SEND_HEARTBEAT_SUCCESS", listener);
-            processNext();
-          }
-        };
-        FluxDispatcher.subscribe("QUESTS_SEND_HEARTBEAT_SUCCESS", listener);
-        console.log(Spoofed game ${appName} - keep open for ~${Math.ceil((secondsNeeded-secondsDone)/60)} min);
-      }).catch(() => { console.log("Game spoof failed"); processNext(); });
-    } else if (taskName === "STREAM_ON_DESKTOP") {
-      if (!isApp) { console.log(Use desktop for ${questName}); processNext(); return; }
-      let orig = ApplicationStreamingStore.getStreamerActiveStreamMetadata;
-      ApplicationStreamingStore.getStreamerActiveStreamMetadata = () => ({id: appId, pid, sourceName: null});
-      const listener = data => {
-        const prog = quest.config.configVersion === 1 ? data.userStatus.streamProgressSeconds : Math.floor(data.userStatus.progress?.STREAM_ON_DESKTOP?.value ?? 0);
-        console.log(Stream progress: ${prog}/${secondsNeeded});
-        if (prog >= secondsNeeded) {
-          console.log(Completed: ${questName});
-          ApplicationStreamingStore.getStreamerActiveStreamMetadata = orig;
-          FluxDispatcher.unsubscribe("QUESTS_SEND_HEARTBEAT_SUCCESS", listener);
-          processNext();
-        }
-      };
-      FluxDispatcher.subscribe("QUESTS_SEND_HEARTBEAT_SUCCESS", listener);
-      console.log(Spoofed stream ${appName} - actually start streaming in VC with 1+ person);
-    } else if (taskName === "PLAY_ACTIVITY") {
-      const chan = ChannelStore.getSortedPrivateChannels()[0] ?? Object.values(GuildChannelStore.getAllGuilds()).flatMap(g => g.VOCAL ?? []).find(c => c?.id)?.channel;
-      if (!chan?.id) { console.log("No voice channel found"); processNext(); return; }
-      const streamKey = call:${chan.id}:1;
-      (async () => {
-        while (true) {
-          const res = await api.post({url: /quests/${quest.id}/heartbeat, body: {stream_key: streamKey, terminal: false}});
-          const prog = res.body.progress?.PLAY_ACTIVITY?.value ?? 0;
-          console.log(Activity progress: ${prog}/${secondsNeeded});
-          await new Promise(r => setTimeout(r, 20*1000));
-          if (prog >= secondsNeeded) {
-            await api.post({url: /quests/${quest.id}/heartbeat, body: {stream_key: streamKey, terminal: true}});
-            console.log(Completed: ${questName});
-            break;
-          }
-        }
-        processNext();
-      })();
-    }
-  };
-  processNext();
+  console.log(`Found ${quests.length} quest(s). Processing all types (video + games)...`);
+
+  let processNext = function() {
+    const quest = quests.shift();
+    if (!quest) {
+      console.log("All quests processed!");
+      return;
+    }
+
+    const pid = Math.floor(Math.random() * 30000) + 1000;
+    const appId = quest.config.application?.id;
+    const appName = quest.config.application?.name ?? "Unknown";
+    const questName = quest.config.messages?.questName ?? "Unknown Quest";
+    const taskConfig = quest.config.taskConfig ?? quest.config.taskConfigV2;
+    const taskName = supportedTasks.find(t => taskConfig.tasks?.[t] != null);
+    const secondsNeeded = taskConfig.tasks[taskName].target;
+    let secondsDone = quest.userStatus?.progress?.[taskName]?.value ?? 0;
+
+    console.log(`Starting: ${questName} (${taskName}) - ${secondsDone}/${secondsNeeded}s`);
+
+    if (taskName === "WATCH_VIDEO" || taskName === "WATCH_VIDEO_ON_MOBILE") {
+      const maxFuture = 10, speed = 7, interval = 1;
+      const enrolledAt = new Date(quest.userStatus.enrolledAt).getTime();
+      let completed = false;
+
+      (async () => {
+        while (true) {
+          const maxAllowed = Math.floor((Date.now() - enrolledAt) / 1000) + maxFuture;
+          const diff = maxAllowed - secondsDone;
+          const timestamp = secondsDone + speed;
+          if (diff >= speed) {
+            try {
+              const res = await api.post({url: `/quests/${quest.id}/video-progress`, body: {timestamp: Math.min(secondsNeeded, timestamp + Math.random())}});
+              completed = res.body.completed_at != null;
+              secondsDone = Math.min(secondsNeeded, timestamp);
+              console.log(`Video progress: ${secondsDone}/${secondsNeeded}`);
+            } catch (e) { console.error("Video error:", e.message); }
+          }
+          if (timestamp >= secondsNeeded) break;
+          await new Promise(r => setTimeout(r, interval * 1000));
+        }
+        if (!completed) await api.post({url: `/quests/${quest.id}/video-progress`, body: {timestamp: secondsNeeded}}).catch(console.error);
+        console.log(`Completed: ${questName}`);
+        processNext();
+      })();
+    } else if (taskName === "PLAY_ON_DESKTOP") {
+      if (!isApp) {
+        console.log(`Use desktop app for ${questName} (browser not supported). Skipping.`);
+        processNext();
+        return;
+      }
+      api.get({url: `/applications/public?application_ids=${appId}`}).then(res => {
+        const appData = res.body[0];
+        if (!appData) { console.log("App data failed"); processNext(); return; }
+        const exeName = appData.executables?.find(x => x.os === "win32")?.name?.replace(">","") ?? "unknown.exe";
+        const fakeGame = {
+          cmdLine: `C:\\Program Files\\${appData.name}\\${exeName}`,
+          exeName, exePath: `c:/program files/${appData.name.toLowerCase()}/${exeName}`,
+          hidden: false, isLauncher: false,
+          id: appId, name: appData.name,
+          pid, pidPath: [pid], processName: appData.name, start: Date.now()
+        };
+        const realGames = RunningGameStore.getRunningGames();
+        const fakeGames = [fakeGame];
+        const origGet = RunningGameStore.getRunningGames;
+        const origPID = RunningGameStore.getGameForPID;
+        RunningGameStore.getRunningGames = () => fakeGames;
+        RunningGameStore.getGameForPID = p => fakeGames.find(g => g.pid === p);
+        FluxDispatcher.dispatch({type: "RUNNING_GAMES_CHANGE", removed: realGames, added: [fakeGame], games: fakeGames});
+
+        const listener = data => {
+          const prog = quest.config.configVersion === 1 ? data.userStatus.streamProgressSeconds : Math.floor(data.userStatus.progress?.PLAY_ON_DESKTOP?.value ?? 0);
+          console.log(`Game progress: ${prog}/${secondsNeeded}`);
+          if (prog >= secondsNeeded) {
+            console.log(`Completed: ${questName}`);
+            RunningGameStore.getRunningGames = origGet;
+            RunningGameStore.getGameForPID = origPID;
+            FluxDispatcher.dispatch({type: "RUNNING_GAMES_CHANGE", removed: [fakeGame], added: [], games: []});
+            FluxDispatcher.unsubscribe("QUESTS_SEND_HEARTBEAT_SUCCESS", listener);
+            processNext();
+          }
+        };
+        FluxDispatcher.subscribe("QUESTS_SEND_HEARTBEAT_SUCCESS", listener);
+        console.log(`Spoofed game ${appName} - keep open for ~${Math.ceil((secondsNeeded-secondsDone)/60)} min`);
+      }).catch(() => { console.log("Game spoof failed"); processNext(); });
+    } else if (taskName === "STREAM_ON_DESKTOP") {
+      if (!isApp) { console.log(`Use desktop for ${questName}`); processNext(); return; }
+      let orig = ApplicationStreamingStore.getStreamerActiveStreamMetadata;
+      ApplicationStreamingStore.getStreamerActiveStreamMetadata = () => ({id: appId, pid, sourceName: null});
+      const listener = data => {
+        const prog = quest.config.configVersion === 1 ? data.userStatus.streamProgressSeconds : Math.floor(data.userStatus.progress?.STREAM_ON_DESKTOP?.value ?? 0);
+        console.log(`Stream progress: ${prog}/${secondsNeeded}`);
+        if (prog >= secondsNeeded) {
+          console.log(`Completed: ${questName}`);
+          ApplicationStreamingStore.getStreamerActiveStreamMetadata = orig;
+          FluxDispatcher.unsubscribe("QUESTS_SEND_HEARTBEAT_SUCCESS", listener);
+          processNext();
+        }
+      };
+      FluxDispatcher.subscribe("QUESTS_SEND_HEARTBEAT_SUCCESS", listener);
+      console.log(`Spoofed stream ${appName} - actually start streaming in VC with 1+ person`);
+    } else if (taskName === "PLAY_ACTIVITY") {
+      const chan = ChannelStore.getSortedPrivateChannels()[0] ?? Object.values(GuildChannelStore.getAllGuilds()).flatMap(g => g.VOCAL ?? []).find(c => c?.id)?.channel;
+      if (!chan?.id) { console.log("No voice channel found"); processNext(); return; }
+      const streamKey = `call:${chan.id}:1`;
+      (async () => {
+        while (true) {
+          const res = await api.post({url: `/quests/${quest.id}/heartbeat`, body: {stream_key: streamKey, terminal: false}});
+          const prog = res.body.progress?.PLAY_ACTIVITY?.value ?? 0;
+          console.log(`Activity progress: ${prog}/${secondsNeeded}`);
+          await new Promise(r => setTimeout(r, 20*1000));
+          if (prog >= secondsNeeded) {
+            await api.post({url: `/quests/${quest.id}/heartbeat`, body: {stream_key: streamKey, terminal: true}});
+            console.log(`Completed: ${questName}`);
+            break;
+          }
+        }
+        processNext();
+      })();
+    }
+  };
+
+  processNext();
 }
